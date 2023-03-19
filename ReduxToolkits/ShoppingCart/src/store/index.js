@@ -1,4 +1,4 @@
-import { configureStore, createSlice } from "@reduxjs/toolkit";
+import { configureStore, createSlice, current } from "@reduxjs/toolkit";
 
 const products = [
 	{
@@ -20,17 +20,32 @@ const initialState = {
 	cart: [],
 	itemCount: 0,
 	showCart: false,
+	modified: false,
 };
 
 const cartSlice = createSlice({
 	name: "cart",
 	initialState: initialState,
 	reducers: {
+		fetchCart: (state, action) => {
+			if (action.payload.cart) {
+				console.log("Inside fetchCart reducer");
+				console.log(action.payload);
+				console.log(current(state));
+				// state.cart = action.payload.cart;
+				// state.itemCount = action.payload.itemCount;
+				return { ...action.payload };
+			} else {
+				return { ...action.payload, cart: [] };
+			}
+		},
 		toggleCart: (state) => {
 			state.showCart = !state.showCart;
+			console.log(current(state));
 		},
 		addItem: (state, action) => {
 			state.itemCount++;
+			state.modified = true;
 			const { id, title, price } = action.payload;
 			const product = state.cart.find((p) => p.id === id);
 			if (product) {
@@ -49,6 +64,7 @@ const cartSlice = createSlice({
 		},
 		incrementItemCount: (state, action) => {
 			state.itemCount++;
+			state.modified = true;
 			const itemId = action.payload;
 			const newCart = state.cart.map((c) => {
 				if (c.id === itemId) {
@@ -61,21 +77,32 @@ const cartSlice = createSlice({
 		},
 		decrementItemCount: (state, action) => {
 			state.itemCount--;
+			state.modified = true;
 			const itemId = action.payload;
-			const newCart = state.cart.map((c) => {
-				if (c.id === itemId) {
-					return { ...c, quantity: c.quantity - 1 };
-				} else {
-					return c;
-				}
-			});
-			state.cart = newCart;
+			const item = state.cart.find((x) => x.id === itemId);
+			if (item.quantity === 1) {
+				state.cart = state.cart.filter((x) => x.id != itemId);
+			} else {
+				const newCart = state.cart.map((c) => {
+					if (c.id === itemId) {
+						return { ...c, quantity: c.quantity - 1 };
+					} else {
+						return c;
+					}
+				});
+				state.cart = newCart;
+			}
 		},
 	},
 });
 
-export const { toggleCart, addItem, incrementItemCount, decrementItemCount } =
-	cartSlice.actions;
+export const {
+	toggleCart,
+	addItem,
+	incrementItemCount,
+	decrementItemCount,
+	fetchCart,
+} = cartSlice.actions;
 
 const store = configureStore({
 	reducer: cartSlice.reducer,
